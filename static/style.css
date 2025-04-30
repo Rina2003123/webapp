@@ -1,0 +1,45 @@
+/* предыдущие стили остаются */
+
+.game-link {
+    display: inline-block;
+    padding: 15px 30px;
+    background-color: #ff6b6b;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 18px;
+    margin: 10px 0;
+    width: 250px;
+    text-align: center;
+    transition: transform 0.3s, background-color 0.3s;
+}
+
+.game-link:hover {
+    background-color: #ff5252;
+    transform: scale(1.05);
+}
+
+.game-link:nth-child(2) {
+    background-color: #4ecdc4;
+}
+
+.game-link:nth-child(2):hover {
+    background-color: #3dbbb2;
+}
+
+.game-link:nth-child(3) {
+    background-color: #ffe66d;
+    color: #333;
+}
+
+.game-link:nth-child(3):hover {
+    background-color: #ffd700;
+}
+
+.game-link:nth-child(4) {
+    background-color: #a18cd1;
+}
+
+.game-link:nth-child(4):hover {
+    background-color: #8e7cc3;
+}

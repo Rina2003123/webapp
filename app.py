@@ -9,9 +9,20 @@ app.secret_key = os.urandom(24).hex()
 def generate_math_task():
     a = random.randint(1, 5)
     b = random.randint(1, 5)
+    operation = random.choice(['+', '-'])
     fruits = ['apple', 'banana', 'orange']
     fruit = random.choice(fruits)
-    return {'a': a, 'b': b, 'fruit': fruit, 'answer': a + b}
+    
+    if operation == '+':
+        answer = a + b
+    else:
+        # Чтобы избежать отрицательных чисел: делаем a >= b
+        if a < b:
+            a, b = b, a
+        answer = a - b
+    
+    return {'a': a, 'b': b, 'fruit': fruit, 'operation': operation, 'answer': answer}
+
 
 @app.route('/')
 def index():

@@ -19,7 +19,7 @@
                 <img src="{{ url_for('static', filename='images/' + task.fruit + '.png') }}" alt="{{ task.fruit }}">
                 {% endfor %}
             </div>
-            <span class="operator">+</span>
+            <span class="operator">{{ task.operation }}</span>
             <div class="fruits">
                 {% for _ in range(task.b) %}
                 <img src="{{ url_for('static', filename='images/' + task.fruit + '.png') }}" alt="{{ task.fruit }}">

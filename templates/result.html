@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Результат</title>
+    <title>Результаты</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container result-container">
-        <h1 class="result-title">Молодец!</h1>
-        <div class="result-score">Ты набрал(а) {{ score }} из 15 баллов!</div>
-        <a href="{{ url_for('age3_5') }}" class="restart-btn">Выбрать другой тренажёр</a>
+    <div class="result-container">
+        <h1>Молодец!</h1>
+        <div class="final-score">Ты набрал(а) <span>{{ request.args.get('score') }}</span> из 15 баллов!</div>
+        <a href="{{ url_for('age3_5') }}" class="restart-btn">Попробовать ещё раз</a>
     </div>
 </body>
 </html>

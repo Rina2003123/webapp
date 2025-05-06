@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Математика для детей 3-5 лет</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container math-container">
+        <div class="timer" id="timer">05:00</div>
+        
+        <div class="task">
+            <div class="fruits">
+                {% for _ in range(task.a) %}
+                <img src="{{ url_for('static', filename='images/' + task.fruit + '.png') }}" alt="{{ task.fruit }}" class="fruit-img">
+                {% endfor %}
+            </div>
+            <span class="math-operator"> + </span>
+            <div class="fruits">
+                {% for _ in range(task.b) %}
+                <img src="{{ url_for('static', filename='images/' + task.fruit + '.png') }}" alt="{{ task.fruit }}" class="fruit-img">
+                {% endfor %}
+            </div>
+            <span class="math-operator"> = </span>
+            <input type="number" id="answer" name="answer" min="1" max="10" class="answer-input">
+            <button onclick="submitAnswer()" class="next-btn">Далее</button>
+        </div>
+        
+        <div class="progress">
+            Вопрос {{ session['current_task'] + 1 }} из 15
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

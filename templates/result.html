@@ -9,8 +9,14 @@
 <body>
     <div class="result-container">
         <h1>Молодец!</h1>
-        <div class="final-score">Ты набрал(а) <span>{{ request.args.get('score') }}</span> из 15 баллов!</div>
-        <a href="{{ url_for('age3_5') }}" class="restart-btn">Попробовать ещё раз</a>
+        <div class="final-score">
+            {% if request.args.get('game') == 'pair' %}
+                Ты нашёл(а) <span>{{ score }}</span> пар из 15!
+            {% else %}
+                Ты набрал(а) <span>{{ score }}</span> баллов из 15!
+            {% endif %}
+        </div>
+        <a href="{{ url_for('age3_5') }}" class="restart-btn">Выбрать другой тренажёр</a>
     </div>
 </body>
 </html>

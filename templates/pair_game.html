@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Найди пару</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .pair-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .target-fruit {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            border: 3px solid #3498db;
+            border-radius: 15px;
+            padding: 10px;
+        }
+        .options-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .fruit-option {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .fruit-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        .feedback {
+            font-size: 2em;
+            font-weight: bold;
+            height: 40px;
+            margin: 10px 0;
+        }
+        .correct {
+            color: #2ecc71;
+        }
+        .incorrect {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <div class="timer" id="timer">05:00</div>
+            <div class="score">Найдено пар: <span id="score">{{ current_score }}</span>/15</div>
+        </div>
+
+        <div class="pair-container">
+            <h2>Найди пару этому фрукту:</h2>
+            <img src="{{ url_for('static', filename='images/' + task.correct_fruit + '.png') }}" 
+                 alt="{{ task.correct_fruit }}" 
+                 class="target-fruit">
+            
+            <div class="feedback" id="feedback"></div>
+            
+            <div class="options-container">
+                {% for fruit in task.options %}
+                <img src="{{ url_for('static', filename='images/' + fruit + '.png') }}" 
+                     alt="{{ fruit }}" 
+                     class="fruit-option"
+                     onclick="checkPair('{{ fruit }}')">
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="progress">
+            Вопрос <span id="current-question">{{ session['current_pair_task'] + 1 }}</span>/15
+        </div>
+    </div>
+
+    <script>
+        // Таймер
+        const endTime = {{ end_time }};
+        let score = {{ current_score }};
+        
+        function updateTimer() {
+            const now = Math.floor(Date.now() / 1000);
+            const diff = endTime - now;
+            
+            if (diff <= 0) {
+                document.getElementById('timer').textContent = "00:00";
+                finishGame();
+                return;
+            }
+            
+            const minutes = Math.floor(diff / 60).toString().padStart(2, '0');
+            const seconds = (diff % 60).toString().padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+        }
+        
+        // Проверка выбора
+        async function checkPair(selectedFruit) {
+            try {
+                const response = await fetch("{{ url_for('check_pair') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `fruit=${selectedFruit}`
+                });
+                
+                const data = await response.json();
+                const feedbackEl = document.getElementById('feedback');
+                
+                if (data.is_correct) {
+                    feedbackEl.textContent = "Верно! ✓";
+                    feedbackEl.className = "feedback correct";
+                } else {
+                    feedbackEl.textContent = "Неверно ✗";
+                    feedbackEl.className = "feedback incorrect";
+                }
+                
+                if (data.status === 'finished') {
+                    setTimeout(finishGame, 1000);
+                } else if (data.status === 'next') {
+                    score = data.score;
+                    document.getElementById('score').textContent = score;
+                    document.getElementById('current-question').textContent = 
+                        parseInt(document.getElementById('current-question').textContent) + 1;
+                    
+                    // Задержка перед обновлением
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+        
+        function finishGame() {
+            window.location.href = "{{ url_for('result') }}?score=" + score + "&game=pair";
+        }
+        
+        // Запуск таймера
+        setInterval(updateTimer, 1000);
+        updateTimer();
+    </script>
+</body>
+</html>

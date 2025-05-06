@@ -1,45 +1,103 @@
-/* предыдущие стили остаются */
+/* Существующие стили остаются */
+.math-container {
+    max-width: 800px;
+    padding: 20px;
+}
 
-.game-link {
+.timer {
+    font-size: 2em;
+    color: #ff6b6b;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.task {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 30px 0;
+}
+
+.fruits {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 200px;
+}
+
+.fruit-img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+}
+
+.math-operator {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.answer-input {
+    width: 60px;
+    height: 40px;
+    font-size: 20px;
+    text-align: center;
+    border: 2px solid #4CAF50;
+    border-radius: 5px;
+}
+
+.next-btn {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.next-btn:hover {
+    background-color: #45a049;
+}
+
+.progress {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #666;
+    text-align: center;
+}
+
+/* Стили для страницы результата */
+.result-container {
+    text-align: center;
+    margin-top: 50px;
+}
+
+.result-title {
+    color: #4CAF50;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+
+.result-score {
+    font-size: 1.8em;
+    margin-bottom: 30px;
+}
+
+.restart-btn {
     display: inline-block;
-    padding: 15px 30px;
+    padding: 12px 25px;
     background-color: #ff6b6b;
     color: white;
     text-decoration: none;
     border-radius: 5px;
-    font-size: 18px;
-    margin: 10px 0;
-    width: 250px;
-    text-align: center;
-    transition: transform 0.3s, background-color 0.3s;
+    font-size: 1.2em;
+    transition: background-color 0.3s;
 }
 
-.game-link:hover {
+.restart-btn:hover {
     background-color: #ff5252;
-    transform: scale(1.05);
-}
-
-.game-link:nth-child(2) {
-    background-color: #4ecdc4;
-}
-
-.game-link:nth-child(2):hover {
-    background-color: #3dbbb2;
-}
-
-.game-link:nth-child(3) {
-    background-color: #ffe66d;
-    color: #333;
-}
-
-.game-link:nth-child(3):hover {
-    background-color: #ffd700;
-}
-
-.game-link:nth-child(4) {
-    background-color: #a18cd1;
-}
-
-.game-link:nth-child(4):hover {
-    background-color: #8e7cc3;
 }

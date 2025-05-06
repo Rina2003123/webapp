@@ -3,35 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Математика для детей 3-5 лет</title>
+    <title>Математика для детей</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container math-container">
-        <div class="timer" id="timer">05:00</div>
-        
+    <div class="container">
+        <div class="game-header">
+            <div class="timer" id="timer">05:00</div>
+            <div class="score">Баллы: <span id="score">{{ current_score }}</span>/15</div>
+        </div>
+
         <div class="task">
             <div class="fruits">
                 {% for _ in range(task.a) %}
-                <img src="{{ url_for('static', filename='images/' + task.fruit + '.png') }}" alt="{{ task.fruit }}" class="fruit-img">
+                <img src="{{ url_for('static', filename='images/' + task.fruit + '.png') }}" alt="{{ task.fruit }}">
                 {% endfor %}
             </div>
-            <span class="math-operator"> + </span>
+            <span class="operator">+</span>
             <div class="fruits">
                 {% for _ in range(task.b) %}
-                <img src="{{ url_for('static', filename='images/' + task.fruit + '.png') }}" alt="{{ task.fruit }}" class="fruit-img">
+                <img src="{{ url_for('static', filename='images/' + task.fruit + '.png') }}" alt="{{ task.fruit }}">
                 {% endfor %}
             </div>
-            <span class="math-operator"> = </span>
-            <input type="number" id="answer" name="answer" min="1" max="10" class="answer-input">
-            <button onclick="submitAnswer()" class="next-btn">Далее</button>
+            <span class="operator">=</span>
+            <input type="number" id="answer-input" min="1" max="10">
+            <button id="submit-btn">Далее</button>
         </div>
-        
+
         <div class="progress">
-            Вопрос {{ session['current_task'] + 1 }} из 15
+            Вопрос <span id="current-question">{{ session['current_task'] + 1 }}</span>/15
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Инициализация данных
+        const endTime = {{ end_time }};
+        let score = {{ current_score }};
+        
+        // Элементы DOM
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const answerInput = document.getElementById('answer-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const currentQuestionEl = document.getElementById('current-question');
+        
+        // Таймер
+        function updateTimer() {
+            const now = Math.floor(Date.now() / 1000);
+            const diff = endTime - now;
+            
+            if (diff <= 0) {
+                timerEl.textContent = "00:00";
+                finishGame();
+                return;
+            }
+            
+            const minutes = Math.floor(diff / 60).toString().padStart(2, '0');
+            const seconds = (diff % 60).toString().padStart(2, '0');
+            timerEl.textContent = `${minutes}:${seconds}`;
+        }
+        
+        // Отправка ответа
+        async function submitAnswer() {
+            const answer = answerInput.value.trim();
+            if (!answer) return;
+            
+            try {
+                const response = await fetch("{{ url_for('check_answer') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `answer=${answer}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'finished') {
+                    score = data.score;
+                    scoreEl.textContent = score;
+                    finishGame();
+                } else if (data.status === 'next') {
+                    score = data.score;
+                    scoreEl.textContent = score;
+                    currentQuestionEl.textContent = parseInt(currentQuestionEl.textContent) + 1;
+                    answerInput.value = '';
+                    // В реальном приложении здесь нужно загрузить новый вопрос
+                    window.location.reload(); // Временное решение
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+        
+        // Завершение игры
+        function finishGame() {
+            window.location.href = "{{ url_for('result') }}?score=" + score;
+        }
+        
+        // Обработчики событий
+        submitBtn.addEventListener('click', submitAnswer);
+        answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitAnswer();
+        });
+        
+        // Запуск таймера
+        setInterval(updateTimer, 1000);
+        updateTimer();
+    </script>
 </body>
 </html>

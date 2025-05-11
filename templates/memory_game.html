@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Найди пару</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 20px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .timer, .score {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-gap: 10px;
+      padding: 20px;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    .memory-card {
+      width: 100%;
+      height: 120px;
+      position: relative;
+      cursor: pointer;
+      perspective: 1000px;
+    }
+    .memory-card .card-inner {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    .memory-card.flip .card-inner {
+      transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 8px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-color: white;
+      border: 2px solid #ddd;
+    }
+    .card-front {
+      transform: rotateY(180deg);
+    }
+    .card-back {
+      background-image: url('/static/card-back.png');
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="timer">⏳ <span id="timer">5:00</span></div>
+    <div class="score">Найдено пар: <span id="score">0</span>/6</div>
+  </div>
+
+  <div class="game-board" id="game-board">
+    <!-- Карточки будут добавлены здесь JavaScript -->
+  </div>
+
+  <script>
+    // Получаем данные карточек из серверного рендеринга
+    const serverCards = {{ cards|tojson }};
+    let cards = serverCards;
+    let firstCard = null;
+    let secondCard = null;
+    let lockBoard = false;
+    let matchedPairs = 0;
+    const totalPairs = 6;
+
+    // Функция для перехода на страницу результатов
+    function goToResults() {
+      window.location.href = `/result?game=pair&score=${matchedPairs}&total=${totalPairs}`;
+    }
+
+    // Создаем карточки
+    function createCards() {
+      const gameBoard = document.getElementById('game-board');
+      gameBoard.innerHTML = ''; // Очищаем доску
+      
+      cards.forEach((fruit, index) => {
+        const card = document.createElement('div');
+        card.classList.add('memory-card');
+        card.dataset.index = index;
+        card.dataset.fruit = fruit;
+
+        const cardInner = document.createElement('div');
+        cardInner.classList.add('card-inner');
+
+        const cardFront = document.createElement('div');
+        cardFront.classList.add('card-front');
+        cardFront.style.backgroundImage = `url('/static/images/${fruit}.png')`;
+
+        const cardBack = document.createElement('div');
+        cardBack.classList.add('card-back');
+
+        cardInner.appendChild(cardFront);
+        cardInner.appendChild(cardBack);
+        card.appendChild(cardInner);
+        gameBoard.appendChild(card);
+
+        card.addEventListener('click', flipCard);
+      });
+    }
+
+    // Обработка переворота карточки
+    function flipCard() {
+      if (lockBoard) return;
+      if (this === firstCard) return;
+      if (this.classList.contains('flip')) return;
+
+      this.classList.add('flip');
+
+      if (!firstCard) {
+        firstCard = this;
+        return;
+      }
+
+      secondCard = this;
+      lockBoard = true;
+
+      checkForMatch();
+    }
+
+    // Проверка совпадения
+    function checkForMatch() {
+      const isMatch = firstCard.dataset.fruit === secondCard.dataset.fruit;
+      isMatch ? disableCards() : unflipCards();
+    }
+
+    // Отключаем совпавшие карточки
+    function disableCards() {
+      firstCard.removeEventListener('click', flipCard);
+      secondCard.removeEventListener('click', flipCard);
+      resetBoard();
+      matchedPairs++;
+      document.getElementById('score').textContent = matchedPairs;
+      if (matchedPairs === totalPairs) {
+        setTimeout(goToResults, 500);
+      }
+    }
+
+    // Переворачиваем карточки обратно
+    function unflipCards() {
+      setTimeout(() => {
+        firstCard.classList.remove('flip');
+        secondCard.classList.remove('flip');
+        resetBoard();
+      }, 1000);
+    }
+
+    // Сброс состояния
+    function resetBoard() {
+      [firstCard, secondCard] = [null, null];
+      lockBoard = false;
+    }
+
+    // Таймер
+    let timeLeft = 300; // 5 минут в секундах
+    const timerElement = document.getElementById('timer');
+    const timerInterval = setInterval(() => {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      if (timeLeft === 0) {
+        clearInterval(timerInterval);
+        goToResults();
+      }
+      timeLeft--;
+    }, 1000);
+
+    // Инициализация игры
+    document.addEventListener('DOMContentLoaded', createCards);
+  </script>
+</body>
+</html>

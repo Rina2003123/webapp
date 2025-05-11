@@ -6,7 +6,8 @@ import os
 app = Flask(__name__)
 app.secret_key = os.urandom(24).hex()
 
-FRUITS = ['apple', 'banana', 'orange', 'grapes', 'watermelon']
+FRUITS = ['apple', 'banana', 'orange', 'grapes', 'watermelon', 'strawberry']
+VEGETABLES = ['corn', 'cucumber', 'pepper', 'carrot', 'onion', 'vegetable']
 
 def generate_math_task():
     a = random.randint(1, 5)
@@ -17,7 +18,6 @@ def generate_math_task():
     if operation == '+':
         answer = a + b
     else:
-        # Чтобы избежать отрицательных чисел: делаем a >= b
         if a < b:
             a, b = b, a
         answer = a - b
@@ -34,6 +34,16 @@ def generate_pair_task():
     return {
         'correct_fruit': correct_fruit,
         'options': options
+    }
+
+def generate_odd_one_out_task():
+    fruits = random.sample(FRUITS, 2)
+    vegetable = random.choice(VEGETABLES)
+    options = fruits + [vegetable]
+    random.shuffle(options)
+    return {
+        'options': options,
+        'odd_one': vegetable
     }
 
 @app.route('/')
@@ -115,6 +125,46 @@ def check_pair():
         return {
             'status': 'next',
             'score': session['pair_score'],
+            'is_correct': is_correct
+        }
+    except Exception as e:
+        print(f"Error: {e}")
+        return {'status': 'error'}, 400
+
+@app.route('/odd-one-out')
+def odd_one_out():
+    if 'odd_tasks' not in session:
+        session['odd_tasks'] = [generate_odd_one_out_task() for _ in range(15)]
+        session['odd_current'] = 0
+        session['odd_score'] = 0
+        session['odd_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
+
+    task = session['odd_tasks'][session['odd_current']]
+    return render_template(
+        'odd_one_out.html',
+        task=task,
+        current_score=session['odd_score'],
+        end_time=int(session['odd_end_time'])
+    )
+
+@app.route('/check_odd_one', methods=['POST'])
+def check_odd_one():
+    try:
+        selected = request.form['selected']
+        current = session['odd_tasks'][session['odd_current']]
+        is_correct = selected == current['odd_one']
+
+        if is_correct:
+            session['odd_score'] += 1
+
+        session['odd_current'] += 1
+
+        if session['odd_current'] >= len(session['odd_tasks']) or datetime.now().timestamp() > session['odd_end_time']:
+            return {'status': 'finished', 'score': session['odd_score']}
+
+        return {
+            'status': 'next',
+            'score': session['odd_score'],
             'is_correct': is_correct
         }
     except Exception as e:

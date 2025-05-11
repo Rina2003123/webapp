@@ -9,6 +9,7 @@ app.secret_key = os.urandom(24).hex()
 FRUITS = ['apple', 'banana', 'orange', 'grapes', 'watermelon', 'strawberry']
 VEGETABLES = ['corn', 'cucumber', 'pepper', 'carrot', 'onion', 'vegetable']
 
+
 def generate_math_task():
     a = random.randint(1, 5)
     b = random.randint(1, 5)
@@ -24,6 +25,7 @@ def generate_math_task():
 
     return {'a': a, 'b': b, 'fruit': fruit, 'operation': operation, 'answer': answer}
 
+
 def generate_pair_task():
     correct_fruit = random.choice(FRUITS)
     options = random.sample(FRUITS, 3)
@@ -36,23 +38,16 @@ def generate_pair_task():
         'options': options
     }
 
-def generate_odd_one_out_task():
-    fruits = random.sample(FRUITS, 2)
-    vegetable = random.choice(VEGETABLES)
-    options = fruits + [vegetable]
-    random.shuffle(options)
-    return {
-        'options': options,
-        'odd_one': vegetable
-    }
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+
 @app.route('/age3-5')
 def age3_5():
     return render_template('age3_5.html')
+
 
 @app.route('/math3-5')
 def math3_5():
@@ -67,6 +62,7 @@ def math3_5():
         current_score=session['score'],
         end_time=int(session['end_time'])
     )
+
 
 @app.route('/check_answer', methods=['POST'])
 def check_answer():
@@ -83,10 +79,12 @@ def check_answer():
         print(f"Error: {e}")
         return {'status': 'error'}, 400
 
+
 @app.route('/result')
 def result():
     score = request.args.get('score', 0)
     return render_template('result.html', score=score)
+
 
 @app.route('/pair-game')
 def pair_game():
@@ -103,6 +101,7 @@ def pair_game():
         current_score=session.get('pair_score', 0),
         end_time=int(session['pair_end_time'])
     )
+
 
 @app.route('/check_pair', methods=['POST'])
 def check_pair():
@@ -131,6 +130,18 @@ def check_pair():
         print(f"Error: {e}")
         return {'status': 'error'}, 400
 
+
+def generate_odd_one_out_task():
+    fruits = random.sample(FRUITS, 2)
+    vegetable = random.choice(VEGETABLES)
+    options = fruits + [vegetable]
+    random.shuffle(options)
+    return {
+        'options': options,
+        'odd_one': vegetable
+    }
+
+
 @app.route('/odd-one-out')
 def odd_one_out():
     if 'odd_tasks' not in session:
@@ -146,6 +157,7 @@ def odd_one_out():
         current_score=session['odd_score'],
         end_time=int(session['odd_end_time'])
     )
+
 
 @app.route('/check_odd_one', methods=['POST'])
 def check_odd_one():
@@ -171,5 +183,18 @@ def check_odd_one():
         print(f"Error: {e}")
         return {'status': 'error'}, 400
 
+@app.route('/memory-game')
+def memory_game():
+    fruits = FRUITS * 2  # 6 пар = 12 карточек
+    random.shuffle(fruits)
+    session['memory_cards'] = fruits
+    session['memory_matched'] = [False] * 12
+    session['memory_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
+    return render_template(
+        'memory_game.html',
+        cards=fruits,
+        matched=session['memory_matched'],
+        end_time=int(session['memory_end_time'])
+    )
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -42,8 +42,6 @@ def generate_pair_task():
 @app.route('/')
 def index():
     return render_template('index.html')
-
-
 @app.route('/age3-5')
 def age3_5():
     return render_template('age3_5.html')
@@ -196,5 +194,61 @@ def memory_game():
         matched=session['memory_matched'],
         end_time=int(session['memory_end_time'])
     )
+@app.route('/age5-7')
+def age5_7():
+    return render_template('age5_7.html')
+def generate_count_task():
+    total_items = random.randint(1, 10)
+    items = []
+    for _ in range(total_items):
+        if random.random() < 0.5:
+            items.append(random.choice(FRUITS))
+        else:
+            items.append(random.choice(VEGETABLES))
+    return {
+        'images': items,
+        'correct_count': total_items
+    }
+
+@app.route('/count-items')
+def count_items():
+    if 'count_tasks' not in session:
+        session['count_tasks'] = [generate_count_task() for _ in range(20)]
+        session['count_current'] = 0
+        session['count_score'] = 0
+        session['count_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
+
+    task = session['count_tasks'][session['count_current']]
+    return render_template(
+        'count_items.html',
+        task=task,
+        current_score=session['count_score'],
+        current_question=session['count_current'] + 1,
+        end_time=int(session['count_end_time'])
+    )
+
+@app.route('/check_count', methods=['POST'])
+def check_count():
+    try:
+        selected = int(request.form['selected'])
+        current_task = session['count_tasks'][session['count_current']]
+        is_correct = selected == current_task['correct_count']
+        if is_correct:
+            session['count_score'] += 1
+
+        session['count_current'] += 1
+
+        if session['count_current'] >= 20 or datetime.now().timestamp() > session['count_end_time']:
+            return {'status': 'finished', 'score': session['count_score']}
+        
+        return {
+            'status': 'next',
+            'score': session['count_score'],
+            'is_correct': is_correct
+        }
+    except Exception as e:
+        print(f"Error: {e}")
+        return {'status': 'error'}, 400
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Найди лишнее</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .header {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            font-size: 18px;
+        }
+        .timer {
+            font-weight: bold;
+        }
+        .score {
+            font-weight: bold;
+        }
+        .cards {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        .cards img {
+            width: 150px;
+            height: 150px;
+            margin: 20px;
+            cursor: pointer;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="timer"> <span id="timer">3:00</span></div>
+        <div class="score">Баллы: {{ current_score }}/15</div>
+    </div>
+
+    <h2 style="text-align: center;">Найди лишнее</h2>
+
+    <div class="cards">
+        {% for option in task.options %}
+            <img src="{{ url_for('static', filename='images/' ~ option ~ '.png') }}"
+                 data-name="{{ option }}"
+                 onclick="selectCard(this)">
+        {% endfor %}
+    </div>
+
+    <div class="footer">
+        Вопрос {{ session['odd_current'] + 1 }} из 15
+    </div>
+
+    <script>
+        const endTime = {{ end_time }};
+        const timerElem = document.getElementById('timer');
+        const interval = setInterval(() => {
+            const now = Math.floor(Date.now() / 1000);
+            const secondsLeft = endTime - now;
+
+            if (secondsLeft <= 0) {
+                clearInterval(interval);
+                window.location.href = "/result?score={{ current_score }}";
+            } else {
+                const minutes = Math.floor(secondsLeft / 60);
+                const seconds = secondsLeft % 60;
+                timerElem.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }, 1000);
+
+        function selectCard(img) {
+            const selected = img.getAttribute('data-name');
+            fetch('/check_odd_one', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'selected=' + selected
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'finished') {
+                    window.location.href = '/result?score=' + data.score;
+                } else {
+                    window.location.reload();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

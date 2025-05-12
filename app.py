@@ -298,6 +298,64 @@ def check_drag():
     except Exception as e:
         print(f"Error: {e}")
         return {'status': 'error'}, 400
+COMPARE_ITEMS = FRUITS + VEGETABLES  # Объединяем фрукты и овощи
+
+def generate_compare_task():
+    item = random.choice(COMPARE_ITEMS)  # Выбираем любой предмет
+    left_count = random.randint(1, 5)
+    right_count = random.randint(1, 5)
+    
+    # Гарантируем разные количества (50% chance для "=")
+    if random.random() > 0.5:
+        while left_count == right_count:
+            right_count = random.randint(1, 5)
+    
+    correct_answer = '>' if left_count > right_count else '<'
+    if left_count == right_count:
+        correct_answer = '='
+    
+    return {
+        'item': item,
+        'left_count': left_count,
+        'right_count': right_count,
+        'correct_answer': correct_answer
+    }
+
+@app.route('/compare-game')
+def compare_game():
+    if 'compare_tasks' not in session:
+        session['compare_tasks'] = [generate_compare_task() for _ in range(15)]
+        session['current_compare_task'] = 0
+        session['compare_score'] = 0
+        session['compare_end_time'] = (datetime.now() + timedelta(minutes=3)).timestamp()
+    
+    task = session['compare_tasks'][session['current_compare_task']]
+    return render_template('compare_game.html',
+                         task=task,
+                         current_score=session.get('compare_score', 0),
+                         end_time=int(session['compare_end_time']))
+@app.route('/check_compare', methods=['POST'])
+def check_compare():
+    try:
+        selected_sign = request.form['sign']
+        current_task = session['compare_tasks'][session['current_compare_task']]
+        is_correct = selected_sign == current_task['correct_answer']
+        
+        if is_correct:
+            session['compare_score'] += 1
+        
+        session['current_compare_task'] += 1
+        
+        if session['current_compare_task'] >= len(session['compare_tasks']) or datetime.now().timestamp() > session['compare_end_time']:
+            return {'status': 'finished', 'score': session['compare_score']}
+        
+        return {
+            'status': 'next',
+            'score': session['compare_score'],
+            'is_correct': is_correct
+        }
+    except:
+        return {'status': 'error'}, 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

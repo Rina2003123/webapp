@@ -249,6 +249,55 @@ def check_count():
     except Exception as e:
         print(f"Error: {e}")
         return {'status': 'error'}, 400
+def generate_drag_task():
+    return {
+        'target_number': random.randint(1, 10),
+        'images': random.sample(os.listdir('static/images'), 10)
+    }
+
+def generate_drag_task():
+    return {
+        'target_number': random.randint(1, 10),
+        'images': random.sample(os.listdir('static/images'), 10)
+    }
+
+@app.route('/drag-drop')
+def drag_drop():
+    session['drag_tasks'] = [generate_drag_task() for _ in range(20)]
+    session['drag_current'] = 0
+    session['drag_score'] = 0
+    session['drag_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
+
+    return redirect(url_for('drag_question'))
+
+
+@app.route('/drag-question')
+def drag_question():
+    if session['drag_current'] >= 20 or datetime.now().timestamp() > session['drag_end_time']:
+        return redirect(url_for('drag_result'))
+
+    task = session['drag_tasks'][session['drag_current']]
+    return render_template(
+        'drag_drop_game.html',
+        task=task,
+        current_question=session['drag_current'] + 1,
+        current_score=session['drag_score'],
+        end_time=int(session['drag_end_time'])
+    )
+
+
+@app.route('/check_drag', methods=['POST'])
+def check_drag():
+    try:
+        count = int(request.form['count'])
+        correct = count == session['drag_tasks'][session['drag_current']]['target_number']
+        if correct:
+            session['drag_score'] += 1
+        session['drag_current'] += 1
+        return {'status': 'next'}
+    except Exception as e:
+        print(f"Error: {e}")
+        return {'status': 'error'}, 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

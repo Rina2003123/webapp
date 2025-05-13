@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reaction Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .image-container {
+            text-align: center;
+            margin: 30px;
+        }
+        .image-container img {
+            width: 150px;
+            height: 150px;
+        }
+        .buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .buttons button {
+            font-size: 20px;
+            margin: 0 15px;
+            padding: 10px 30px;
+            cursor: pointer;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div><span id="timer"></span></div>
+        <div>{{ score }}/10 баллов</div>
+    </div>
+
+    <div class="image-container">
+        <img src="{{ url_for('static', filename='images/' + task.image + '.png') }}" alt="{{ task.image }}">
+    </div>
+
+    <div class="buttons">
+        <button onclick="submitAnswer('fruit')">Фрукт</button>
+        <button onclick="submitAnswer('vegetable')">Овощ</button>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        Вопрос {{ question_number }} из 10
+    </div>
+
+    <script>
+        const endTime = {{ end_time }};
+        const timerElement = document.getElementById('timer');
+
+        function updateTimer() {
+            const now = Math.floor(Date.now() / 1000);
+            const secondsLeft = endTime - now;
+            if (secondsLeft <= 0) {
+                window.location.href = "/result?score=" + {{ score }};
+            } else {
+                const minutes = Math.floor(secondsLeft / 60);
+                const seconds = secondsLeft % 60;
+                timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        setInterval(updateTimer, 1000);
+        updateTimer();
+
+        function submitAnswer(choice) {
+            fetch("/check_reaction", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ selected: choice })
+            }).then(res => res.json()).then(data => {
+                if (data.status === 'finished') {
+                    window.location.href = "/result?score=" + data.score;
+                } else {
+                    location.reload();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

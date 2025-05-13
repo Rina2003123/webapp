@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тренажер умножения</title>
+</head>
+<body>
+    <div>
+        ⏱️ Осталось времени: <span id="timer">3:00</span><br>
+        Правильных ответов: <span id="score">{{ score }}</span>/15<br>
+        Вопрос: <span id="current">{{ current }}</span>/15
+    </div>
+
+    <hr>
+
+    <div>
+        <p><strong>{{ example.a }} × {{ example.b }} = ?</strong></p>
+        <input type="number" id="answer" min="0" max="100" autofocus>
+        <button onclick="checkAnswer()">Проверить</button>
+    </div>
+
+    <div id="feedback"></div>
+
+    <script>
+        // Таймер
+        const endTime = {{ end_time }};
+        function updateTimer() {
+            const now = Math.floor(Date.now() / 1000);
+            const secondsLeft = endTime - now;
+
+            if (secondsLeft <= 0) {
+                window.location.href = "/trainer-result";
+                return;
+            }
+
+            const minutes = Math.floor(secondsLeft / 60);
+            const seconds = secondsLeft % 60;
+            document.getElementById('timer').textContent =
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        setInterval(updateTimer, 1000);
+        updateTimer();
+
+        // Обработка ответа
+        function checkAnswer() {
+            const answerInput = document.getElementById('answer');
+            const answer = parseInt(answerInput.value);
+
+            if (isNaN(answer)) {
+                alert("Введите число!");
+                return;
+            }
+
+            fetch("/check-multiplication-answer", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: `answer=${answer}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const feedback = document.getElementById('feedback');
+
+                if (data.status === 'finished') {
+                    window.location.href = "/trainer-result";
+                } else {
+                    if (data.is_correct) {
+                        feedback.textContent = "Правильно!";
+                        feedback.style.color = "green";
+                    } else {
+                        feedback.textContent = "Неправильно";
+                        feedback.style.color = "red";
+                    }
+
+                    setTimeout(() => {
+                        answerInput.value = '';
+                        feedback.textContent = '';
+                        window.location.reload();
+                    }, 1000);
+                }
+            });
+        }
+
+        // Enter = отправка
+        document.getElementById('answer').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+    </script>
+</body>
+</html>

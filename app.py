@@ -422,5 +422,72 @@ def memory_game2():
         matched=session['memory_matched'],
         end_time=int(session['memory_end_time'])
     )
+@app.route('/multiplication-trainer')
+def multiplication_trainer():
+    # Генерируем 15 случайных примеров
+    examples = []
+    for _ in range(15):
+        a = random.randint(2, 9)
+        b = random.randint(2, 9)
+        examples.append({
+            'a': a,
+            'b': b,
+            'answer': a * b,
+            'user_answer': None,
+            'is_correct': None
+        })
+    
+    # Сохраняем в сессии
+    session['trainer_examples'] = examples
+    session['trainer_current'] = 0
+    session['trainer_score'] = 0
+    session['trainer_end_time'] = (datetime.now() + timedelta(minutes=3)).timestamp()
+    
+    return redirect(url_for('trainer_question'))
+
+@app.route('/trainer-question')
+def trainer_question():
+    # Проверяем завершение
+    if session['trainer_current'] >= 15 or datetime.now().timestamp() > session['trainer_end_time']:
+        return redirect(url_for('trainer_result'))
+    
+    # Получаем текущий пример
+    example = session['trainer_examples'][session['trainer_current']]
+    
+    return render_template(
+        'multiplication_trainer.html',
+        example=example,
+        current=session['trainer_current'] + 1,
+        total=15,
+        score=session['trainer_score'],
+        end_time=int(session['trainer_end_time'])
+    )
+
+@app.route('/check-multiplication-answer', methods=['POST'])
+def check_multiplication_answer():
+    try:
+        user_answer = int(request.form['answer'])
+        current_example = session['trainer_examples'][session['trainer_current']]
+        
+        # Проверяем ответ
+        is_correct = user_answer == current_example['answer']
+        current_example['user_answer'] = user_answer
+        current_example['is_correct'] = is_correct
+        
+        if is_correct:
+            session['trainer_score'] += 1
+        
+        # Переходим к следующему
+        session['trainer_current'] += 1
+        session.modified = True
+        
+        if session['trainer_current'] >= 15 or datetime.now().timestamp() > session['trainer_end_time']:
+            return {'status': 'finished'}
+        
+        return {'status': 'next', 'is_correct': is_correct}
+    
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}, 400
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

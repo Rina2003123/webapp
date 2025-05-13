@@ -403,6 +403,24 @@ def generate_drag_task():
         'target_number': random.randint(1, 10),
         'images': random.sample(os.listdir('static/images'), 10)
     }
-
+@app.route('/age7-10')
+def age7_10():
+    return render_template('age7_10.html')
+@app.route('/memory-game2')
+def memory_game2():
+    # Создаем 12 пар (24 карточки) - по 2 каждого фрукта и овоща
+    pairs = FRUITS * 2 + VEGETABLES * 2
+    random.shuffle(pairs)
+    
+    session['memory_cards'] = pairs
+    session['memory_matched'] = [False] * 24  # 24 карточки
+    session['memory_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
+    
+    return render_template(
+        'memory_game2.html',
+        cards=pairs,
+        matched=session['memory_matched'],
+        end_time=int(session['memory_end_time'])
+    )
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

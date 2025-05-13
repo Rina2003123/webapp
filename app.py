@@ -180,86 +180,43 @@ def check_odd_one():
     except Exception as e:
         print(f"Error: {e}")
         return {'status': 'error'}, 400
+@app.route('/reaction')
+def reaction_game():
+    if 'reaction_tasks' not in session:
+        session['reaction_tasks'] = [generate_reaction_task() for _ in range(10)]
+        session['reaction_current'] = 0
+        session['reaction_score'] = 0
+        session['reaction_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
 
-@app.route('/memory-game')
-def memory_game():
-    fruits = FRUITS * 2  # 6 пар = 12 карточек
-    random.shuffle(fruits)
-    session['memory_cards'] = fruits
-    session['memory_matched'] = [False] * 12
-    session['memory_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
+    task = session['reaction_tasks'][session['reaction_current']]
     return render_template(
-        'memory_game.html',
-        cards=fruits,
-        matched=session['memory_matched'],
-        end_time=int(session['memory_end_time'])
-    )
-@app.route('/age5-7')
-def age5_7():
-    return render_template('age5_7.html')
-def generate_count_task():
-    total_items = random.randint(1, 10)
-    items = []
-    for _ in range(total_items):
-        if random.random() < 0.5:
-            items.append(random.choice(FRUITS))
-        else:
-            items.append(random.choice(VEGETABLES))
-    return {
-        'images': items,
-        'correct_count': total_items
-    }
-
-@app.route('/count-items')
-def count_items():
-    if 'count_tasks' not in session:
-        session['count_tasks'] = [generate_count_task() for _ in range(20)]
-        session['count_current'] = 0
-        session['count_score'] = 0
-        session['count_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
-
-    task = session['count_tasks'][session['count_current']]
-    return render_template(
-        'count_items.html',
+        'reaction_game.html',
         task=task,
-        current_score=session['count_score'],
-        current_question=session['count_current'] + 1,
-        end_time=int(session['count_end_time'])
+        score=session['reaction_score'],
+        question_number=session['reaction_current'] + 1,
+        end_time=int(session['reaction_end_time'])
     )
 
-@app.route('/check_count', methods=['POST'])
-def check_count():
-    try:
-        selected = int(request.form['selected'])
-        current_task = session['count_tasks'][session['count_current']]
-        is_correct = selected == current_task['correct_count']
-        if is_correct:
-            session['count_score'] += 1
+@app.route('/check_reaction', methods=['POST'])
+def check_reaction():
+    data = request.get_json()
+    selected = data.get('selected')
+    current_task = session['reaction_tasks'][session['reaction_current']]
 
-        session['count_current'] += 1
+    is_correct = selected == current_task['category']
+    if is_correct:
+        session['reaction_score'] += 1
 
-        if session['count_current'] >= 20 or datetime.now().timestamp() > session['count_end_time']:
-            return {'status': 'finished', 'score': session['count_score']}
-        
-        return {
-            'status': 'next',
-            'score': session['count_score'],
-            'is_correct': is_correct
-        }
-    except Exception as e:
-        print(f"Error: {e}")
-        return {'status': 'error'}, 400
-def generate_drag_task():
+    session['reaction_current'] += 1
+    if session['reaction_current'] >= 10 or datetime.now().timestamp() > session['reaction_end_time']:
+        return {'status': 'finished', 'score': session['reaction_score']}
+
     return {
-        'target_number': random.randint(1, 10),
-        'images': random.sample(os.listdir('static/images'), 10)
+        'status': 'next',
+        'score': session['reaction_score'],
+        'is_correct': is_correct
     }
 
-def generate_drag_task():
-    return {
-        'target_number': random.randint(1, 10),
-        'images': random.sample(os.listdir('static/images'), 10)
-    }
 
 @app.route('/drag-drop')
 def drag_drop():
@@ -356,6 +313,96 @@ def check_compare():
         }
     except:
         return {'status': 'error'}, 400
+def generate_reaction_task():
+    if random.random() < 0.5:
+        item = random.choice(FRUITS)
+        category = 'fruit'
+    else:
+        item = random.choice(VEGETABLES)
+        category = 'vegetable'
+    return {
+        'image': item,
+        'category': category
+    }
+@app.route('/memory-game')
+def memory_game():
+    fruits = FRUITS * 2  # 6 пар = 12 карточек
+    random.shuffle(fruits)
+    session['memory_cards'] = fruits
+    session['memory_matched'] = [False] * 12
+    session['memory_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
+    return render_template(
+        'memory_game.html',
+        cards=fruits,
+        matched=session['memory_matched'],
+        end_time=int(session['memory_end_time'])
+    )
+@app.route('/age5-7')
+def age5_7():
+    return render_template('age5_7.html')
+def generate_count_task():
+    total_items = random.randint(1, 10)
+    items = []
+    for _ in range(total_items):
+        if random.random() < 0.5:
+            items.append(random.choice(FRUITS))
+        else:
+            items.append(random.choice(VEGETABLES))
+    return {
+        'images': items,
+        'correct_count': total_items
+    }
+
+@app.route('/count-items')
+def count_items():
+    if 'count_tasks' not in session:
+        session['count_tasks'] = [generate_count_task() for _ in range(20)]
+        session['count_current'] = 0
+        session['count_score'] = 0
+        session['count_end_time'] = (datetime.now() + timedelta(minutes=5)).timestamp()
+
+    task = session['count_tasks'][session['count_current']]
+    return render_template(
+        'count_items.html',
+        task=task,
+        current_score=session['count_score'],
+        current_question=session['count_current'] + 1,
+        end_time=int(session['count_end_time'])
+    )
+
+@app.route('/check_count', methods=['POST'])
+def check_count():
+    try:
+        selected = int(request.form['selected'])
+        current_task = session['count_tasks'][session['count_current']]
+        is_correct = selected == current_task['correct_count']
+        if is_correct:
+            session['count_score'] += 1
+
+        session['count_current'] += 1
+
+        if session['count_current'] >= 20 or datetime.now().timestamp() > session['count_end_time']:
+            return {'status': 'finished', 'score': session['count_score']}
+        
+        return {
+            'status': 'next',
+            'score': session['count_score'],
+            'is_correct': is_correct
+        }
+    except Exception as e:
+        print(f"Error: {e}")
+        return {'status': 'error'}, 400
+def generate_drag_task():
+    return {
+        'target_number': random.randint(1, 10),
+        'images': random.sample(os.listdir('static/images'), 10)
+    }
+
+def generate_drag_task():
+    return {
+        'target_number': random.randint(1, 10),
+        'images': random.sample(os.listdir('static/images'), 10)
+    }
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

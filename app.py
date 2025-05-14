@@ -588,6 +588,42 @@ def reset_math_game():
         'end_time': (datetime.now() + timedelta(minutes=5)).timestamp()
     }
     generate_new_question()
+@app.route('/even-odd')
+def even_odd_trainer():
+    if 'even_odd' not in session:
+        session['even_odd'] = {
+            'score': 0,
+            'question_num': 1,
+            'end_time': (datetime.now() + timedelta(minutes=5)).timestamp(),
+            'current_number': random.randint(1, 999)
+        }
 
+    return render_template(
+        'even_odd_trainer.html',
+        number=session['even_odd']['current_number'],
+        score=session['even_odd']['score'],
+        question_num=session['even_odd']['question_num'],
+        end_time=int(session['even_odd']['end_time'])
+    )
+
+@app.route('/check-even-odd', methods=['POST'])
+def check_even_odd():
+    data = request.json
+    user_choice = data['choice']
+    number = session['even_odd']['current_number']
+    correct = (number % 2 == 0 and user_choice == 'even') or (number % 2 == 1 and user_choice == 'odd')
+
+    if correct:
+        session['even_odd']['score'] += 1
+
+    session['even_odd']['question_num'] += 1
+    game_over = session['even_odd']['question_num'] > 20 or datetime.now().timestamp() > session['even_odd']['end_time']
+    session['even_odd']['current_number'] = random.randint(1, 999)
+    session.modified = True
+
+    return jsonify({
+        'score': session['even_odd']['score'],
+        'game_over': game_over
+    })
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

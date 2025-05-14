@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Математический тренажёр</title>
+</head>
+<body>
+    <div>
+        Вопрос: <span id="question-num">{{ question_num }}</span>/15 |
+        Счёт: <span id="score">{{ score }}</span> |
+        ⏱ <span id="timer">5:00</span>
+    </div>
+
+    <h1 id="question">{{ question }}</h1>
+    <input type="number" id="answer-input" placeholder="Ответ">
+    <div id="feedback"></div>
+    <button id="submit-btn">Проверить</button>
+
+    <script>
+        const gameState = {
+            question: "{{ question }}",
+            score: {{ score }},
+            questionNum: {{ question_num }},
+            endTime: {{ end_time }}
+        };
+
+        const questionEl = document.getElementById('question');
+        const answerInput = document.getElementById('answer-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const feedbackEl = document.getElementById('feedback');
+        const scoreEl = document.getElementById('score');
+        const questionNumEl = document.getElementById('question-num');
+        const timerEl = document.getElementById('timer');
+
+        function updateTimer() {
+            const now = Math.floor(Date.now() / 1000);
+            const timeLeft = Math.max(0, gameState.endTime - now);
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            if (timeLeft > 0) setTimeout(updateTimer, 1000);
+            else endGame();
+        }
+
+        function checkAnswer() {
+            const userAnswer = parseInt(answerInput.value);
+            if (isNaN(userAnswer)) {
+                feedbackEl.textContent = "Введите число!";
+                return;
+            }
+            submitBtn.disabled = true;
+
+            fetch('/check-math-answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer: userAnswer })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.correct) {
+                    feedbackEl.textContent = "Верно!";
+                    scoreEl.textContent = data.score;
+                } else {
+                    feedbackEl.textContent = "Неверно!";
+                }
+                if (data.game_over) {
+                    endGame();
+                } else {
+                    questionNumEl.textContent = data.question_num;
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }
+            });
+        }
+
+        function endGame() {
+            window.location.href = `/result?game=math&score=${gameState.score}&total=15`;
+        }
+
+        submitBtn.addEventListener('click', checkAnswer);
+        answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkAnswer();
+        });
+
+        window.onload = () => {
+            answerInput.focus();
+            updateTimer();
+        };
+    </script>
+</body>
+</html>

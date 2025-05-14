@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Чётное или нечётное</title>
+</head>
+<body>
+    <div>Вопрос: <span id="question-num">{{ question_num }}</span>/20</div>
+    <div>Счёт: <span id="score">{{ score }}</span></div>
+    <div>⏱ <span id="timer">5:00</span></div>
+
+    <h1>{{ number }}</h1>
+    <button onclick="submitAnswer('even')">Чётное</button>
+    <button onclick="submitAnswer('odd')">Нечётное</button>
+
+    <div id="feedback"></div>
+
+    <script>
+        const endTime = {{ end_time }};
+
+        function updateTimer() {
+            const now = Math.floor(Date.now() / 1000);
+            const timeLeft = Math.max(0, endTime - now);
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = String(timeLeft % 60).padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+            if (timeLeft > 0) setTimeout(updateTimer, 1000);
+            else location.href = `/result?game=even_odd&score={{ score }}&total=20`;
+        }
+
+        function submitAnswer(choice) {
+            fetch('/check-even-odd', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ choice })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.game_over) {
+                    location.href = `/result?game=even_odd&score=${data.score}&total=20`;
+                } else {
+                    location.reload();
+                }
+            });
+        }
+
+        updateTimer();
+    </script>
+</body>
+</html>

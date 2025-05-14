@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, session, redirect, url_for, jsonify
 from datetime import datetime, timedelta
 import random
 import os
@@ -8,7 +8,7 @@ app.secret_key = os.urandom(24).hex()
 
 FRUITS = ['apple', 'banana', 'orange', 'grapes', 'watermelon', 'strawberry']
 VEGETABLES = ['corn', 'cucumber', 'pepper', 'carrot', 'onion', 'vegetable']
-
+MATH_OPERATIONS = ['+', '-', '*']
 
 def generate_math_task():
     a = random.randint(1, 5)
@@ -488,6 +488,106 @@ def check_multiplication_answer():
     
     except Exception as e:
         return {'status': 'error', 'message': str(e)}, 400
+@app.route('/math-trainer')
+def math_trainer():
+    if 'math_trainer' not in session:
+        reset_math_game()
+
+    if session['math_trainer']['answered']:
+        generate_new_question()  # <- обязательно обновляем
+
+    return render_template(
+        'math_trainer.html',
+        question=session['math_trainer']['current_question'],
+        score=session['math_trainer']['score'],
+        question_num=session['math_trainer']['question_num'],
+        end_time=int(session['math_trainer']['end_time'])
+    )
+
+@app.route('/check-math-answer', methods=['POST'])
+def check_math_answer():
+    try:
+        user_answer = int(request.json['answer'])
+        correct_answer = session['math_trainer']['current_answer']
+        is_correct = user_answer == correct_answer
+
+        if is_correct:
+            session['math_trainer']['score'] += 1
+
+        session['math_trainer']['question_num'] += 1
+        session['math_trainer']['answered'] = True
+
+        game_over = (
+            session['math_trainer']['question_num'] > 15 or
+            datetime.now().timestamp() > session['math_trainer']['end_time']
+        )
+
+        session.modified = True
+
+        return jsonify({
+            'correct': is_correct,
+            'score': session['math_trainer']['score'],
+            'question_num': session['math_trainer']['question_num'],
+            'game_over': game_over
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+def generate_new_question():
+    question_num = session['math_trainer']['question_num']
+    
+    if question_num <= 5:
+        # Простое сложение и вычитание (до 50)
+        op = random.choice(['+', '-'])
+        a = random.randint(1, 50)
+        b = random.randint(1, 50)
+        if op == '-':
+            # Обеспечить, чтобы результат был неотрицательный
+            a, b = max(a, b), min(a, b)
+    elif question_num <= 10:
+        # Простое умножение и деление без остатка
+        op = random.choice(['*', '/'])
+        if op == '*':
+            a = random.randint(2, 10)
+            b = random.randint(2, 10)
+        else:  # деление
+            b = random.randint(2, 10)
+            result = random.randint(2, 10)
+            a = b * result  # делится нацело
+    else:
+        # Комбинированные выражения — можно чередовать
+        op = random.choice(['+', '-', '*', '/'])
+        if op in ['+', '-']:
+            a = random.randint(20, 50)
+            b = random.randint(10, 30)
+            if op == '-':
+                a, b = max(a, b), min(a, b)
+        elif op == '*':
+            a = random.randint(5, 15)
+            b = random.randint(2, 10)
+        else:  # деление
+            b = random.randint(2, 12)
+            result = random.randint(2, 12)
+            a = b * result
+
+    question = f"{a} {op} {b}"
+    answer = eval(question)
+
+    session['math_trainer']['current_question'] = question
+    session['math_trainer']['current_answer'] = answer
+    session['math_trainer']['answered'] = False
+    session.modified = True
+def reset_math_game():
+    session['math_trainer'] = {
+        'score': 0,
+        'question_num': 1,
+        'current_question': '',
+        'current_answer': 0,
+        'answered': True,  # ключевой момент — генерировать сразу при старте
+        'end_time': (datetime.now() + timedelta(minutes=5)).timestamp()
+    }
+    generate_new_question()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

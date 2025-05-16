@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  {% block content %}{% endblock %}
+
+  <!-- Контейнер для лисы (можно поместить в любое место) -->
+  <div id="fox-container"></div>
+
+  <!-- Подключаем fox.js -->
+  <script src="{{ url_for('static', filename='js/fox.js') }}"></script>
+  
+  {% block scripts %}{% endblock %}
+</body>
+</html>

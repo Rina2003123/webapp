@@ -111,3 +111,16 @@
 .restart-btn:hover {
     background-color: #27ae60;
 }
+#fox-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 150px;
+  height: 150px;
+}
+
+.fox-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

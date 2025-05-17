@@ -5,57 +5,139 @@
     <title>Найди лишнее</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
+        body {
+            background: url("{{ url_for('static', filename='images/backgrounds/background1.png') }}") no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.7);
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        }
+
         .header {
             display: flex;
             justify-content: space-between;
             padding: 10px;
             font-size: 18px;
         }
+        
         .timer {
             font-weight: bold;
         }
+        
         .score {
             font-weight: bold;
         }
+        
+        h2 {
+            text-align: center;
+            margin: 20px 0;
+            color: #333;
+        }
+        
         .cards {
             display: flex;
             justify-content: center;
+            flex-wrap: wrap;
             margin: 30px 0;
+            gap: 15px;
         }
+        
         .cards img {
             width: 150px;
             height: 150px;
-            margin: 20px;
+            object-fit: contain;
             cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            transition: transform 0.3s;
         }
+        
+        .cards img:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        
         .footer {
             text-align: center;
             margin-top: 20px;
             font-size: 18px;
         }
+
+        /* Стили для лисы */
+        #fox-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 500px;
+            height: 500px;
+            z-index: 100;
+        }
+        
+        .fox-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: opacity 0.5s ease, transform 0.3s ease;
+        }
+
+        /* Стили для фидбэка */
+        .feedback {
+            text-align: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            height: 50px;
+            margin: 15px 0;
+        }
+        
+        .correct {
+            color: #2ecc71;
+        }
+        
+        .incorrect {
+            color: #e74c3c;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="timer"> <span id="timer">3:00</span></div>
-        <div class="score">Баллы: {{ current_score }}/15</div>
+    <div class="container">
+        <div class="header">
+            <div class="timer"> <span id="timer">3:00</span></div>
+            <div class="score">Баллы: {{ current_score }}/15</div>
+        </div>
+
+        <h2>Найди лишнее</h2>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div class="cards">
+            {% for option in task.options %}
+                <img src="{{ url_for('static', filename='images/' ~ option ~ '.png') }}"
+                     data-name="{{ option }}"
+                     onclick="selectCard(this)">
+            {% endfor %}
+        </div>
+
+        <div class="footer">
+            Вопрос {{ session['odd_current'] + 1 }} из 15
+        </div>
     </div>
 
-    <h2 style="text-align: center;">Найди лишнее</h2>
-
-    <div class="cards">
-        {% for option in task.options %}
-            <img src="{{ url_for('static', filename='images/' ~ option ~ '.png') }}"
-                 data-name="{{ option }}"
-                 onclick="selectCard(this)">
-        {% endfor %}
-    </div>
-
-    <div class="footer">
-        Вопрос {{ session['odd_current'] + 1 }} из 15
-    </div>
+    <!-- Контейнер для лисы 500x500 -->
+    <div id="fox-container"></div>
 
     <script>
+        // Таймер
         const endTime = {{ end_time }};
         const timerElem = document.getElementById('timer');
         const interval = setInterval(() => {
@@ -72,6 +154,38 @@
             }
         }, 1000);
 
+        // Класс для лисы с плавными переходами
+        class Fox {
+            constructor(containerId = 'fox-container') {
+                this.container = document.getElementById(containerId);
+                this.currentEmotion = null;
+                this.setNeutral();
+            }
+
+            setEmotion(emotion) {
+                if (this.currentEmotion === emotion) return;
+                
+                this.currentEmotion = emotion;
+                const img = new Image();
+                img.src = `{{ url_for('static', filename='images/fox/') }}${emotion}.png`;
+                img.className = 'fox-image';
+                img.style.opacity = 0;
+                
+                img.onload = () => {
+                    this.container.innerHTML = '';
+                    this.container.appendChild(img);
+                    setTimeout(() => { img.style.opacity = 1; }, 10);
+                };
+            }
+
+            setNeutral() { this.setEmotion('neutral'); }
+            setHappy() { this.setEmotion('happy'); }
+            setSad() { this.setEmotion('sad'); }
+        }
+
+        // Инициализация лисы
+        const fox = new Fox();
+
         function selectCard(img) {
             const selected = img.getAttribute('data-name');
             fetch('/check_odd_one', {
@@ -81,10 +195,29 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'finished') {
-                    window.location.href = '/result?score=' + data.score;
+                const feedbackEl = document.getElementById('feedback');
+                
+                if (data.is_correct) {
+                    feedbackEl.textContent = "Верно! ✓";
+                    feedbackEl.className = "feedback correct";
+                    fox.setHappy();
                 } else {
-                    window.location.reload();
+                    feedbackEl.textContent = "Неверно ✗";
+                    feedbackEl.className = "feedback incorrect";
+                    fox.setSad();
+                }
+                
+                // Возврат к нейтральной эмоции через 3 секунды
+                setTimeout(() => fox.setNeutral(), 3000);
+                
+                if (data.status === 'finished') {
+                    setTimeout(() => {
+                        window.location.href = '/result?score=' + data.score;
+                    }, 1000);
+                } else {
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 }
             });
         }

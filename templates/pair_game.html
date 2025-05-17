@@ -5,134 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Найди пару</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        /* Основные стили */
-        body {
-            background: url("{{ url_for('static', filename='images/backgrounds/background1.png') }}") no-repeat center center fixed;
-            background-size: cover;
-            margin: 0;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-        }
+<style>
+    /* Основные стили */
+    body {
+        background: url("{{ url_for('static', filename='images/backgrounds/background1.png') }}") no-repeat center center fixed;
+        background-size: cover;
+        margin: 0;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+    }
 
+    .container {
+        background-color: rgba(255, 255, 255, 0.6); /* Изменено на 60% прозрачности */
+        width: 80%;
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.15); /* Уменьшенная тень */
+        border: 1px solid rgba(255, 255, 255, 0.5); /* Полупрозрачная граница */
+    }
+
+    .pair-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+        margin-top: 20px;
+    }
+
+    .target-fruit {
+        width: 120px;
+        height: 120px;
+        object-fit: contain;
+        border: 3px solid #3498db;
+        border-radius: 15px;
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.8); /* Полупрозрачный белый */
+    }
+
+    .options-container {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .fruit-option {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        border: 2px solid rgba(221, 221, 221, 0.7); /* Полупрозрачная граница */
+        border-radius: 10px;
+        padding: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background-color: rgba(255, 255, 255, 0.9); /* Почти непрозрачный белый */
+    }
+
+    .fruit-option:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        background-color: white; /* При наведении - полностью белый */
+    }
+
+    .feedback {
+        font-size: 2em;
+        font-weight: bold;
+        height: 40px;
+        margin: 10px 0;
+    }
+
+    .correct {
+        color: #2ecc71;
+        text-shadow: 0 0 3px rgba(46, 204, 113, 0.3);
+    }
+
+    .incorrect {
+        color: #e74c3c;
+        text-shadow: 0 0 3px rgba(231, 76, 60, 0.3);
+    }
+
+    #fox-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 500px;
+        height: 500px;
+        z-index: 100;
+    }
+
+    .fox-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transition: transform 0.3s;
+    }
+
+    .fox-image:hover {
+        transform: scale(1.05);
+    }
+
+    .game-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .timer, .score {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .progress {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 1.1em;
+        color: #333;
+    }
+
+    /* Оптимизация для широкоформатных мониторов */
+    @media (min-width: 1600px) {
         .container {
-            background-color: rgba(255, 255, 255, 0.9);
-            width: 80%;
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-            border: 1px solid #e0e0e0;
+            margin-top: 5vh;
         }
+    }
 
-        .pair-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 30px;
-            margin-top: 20px;
-        }
-
-        .target-fruit {
-            width: 120px;
-            height: 120px;
-            object-fit: contain;
-            border: 3px solid #3498db;
-            border-radius: 15px;
-            padding: 10px;
-            background-color: white;
-        }
-
-        .options-container {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .fruit-option {
-            width: 80px;
-            height: 80px;
-            object-fit: contain;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            padding: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-            background-color: white;
-        }
-
-        .fruit-option:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        }
-
-        .feedback {
-            font-size: 2em;
-            font-weight: bold;
-            height: 40px;
-            margin: 10px 0;
-        }
-
-        .correct {
-            color: #2ecc71;
-        }
-
-        .incorrect {
-            color: #e74c3c;
-        }
-
-        #fox-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 250px;
-            height: 250px;
-            z-index: 100;
-        }
-
-        .fox-image {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            transition: transform 0.3s;
-        }
-
-        .fox-image:hover {
-            transform: scale(1.05);
-        }
-
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .timer, .score {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-
-        .progress {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 1.1em;
-        }
-
-        /* Оптимизация для широкоформатных мониторов */
-        @media (min-width: 1600px) {
-            .container {
-                margin-top: 5vh;
-            }
-        }
-
-        /* Улучшение читаемости текста */
-        h2, .progress, .score {
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-            color: #333;
-        }
-    </style>
+    /* Улучшение читаемости текста */
+    h2, .progress, .score {
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        color: #333;
+    }
+</style>
 </head>
 <body>
     <div class="container">
@@ -188,24 +193,44 @@
         }
         
         // Класс для лисы
-        class Fox {
-            constructor(containerId = 'fox-container') {
-                this.container = document.getElementById(containerId);
-                this.setNeutral();
-            }
+class Fox {
+    constructor(containerId = 'fox-container') {
+        this.container = document.getElementById(containerId);
+        this.currentEmotion = null;
+        this.setNeutral();
+    }
 
-            setEmotion(emotion) {
-                this.container.innerHTML = `
-                    <img src="{{ url_for('static', filename='images/fox/') }}${emotion}.png" 
-                         alt="Fox ${emotion}" 
-                         class="fox-image">`;
-            }
+    setEmotion(emotion) {
+        if (this.currentEmotion === emotion) return;
+        
+        this.currentEmotion = emotion;
+        const img = new Image();
+        img.src = `{{ url_for('static', filename='images/fox/') }}${emotion}.png`;
+        img.className = 'fox-image';
+        img.style.opacity = 0;
+        
+        img.onload = () => {
+            this.container.innerHTML = '';
+            this.container.appendChild(img);
+            setTimeout(() => { img.style.opacity = 1; }, 10);
+        };
+    }
 
-            setNeutral() { this.setEmotion('neutral'); }
-            setHappy() { this.setEmotion('happy'); }
-            setSad() { this.setEmotion('sad'); }
-        }
+    setNeutral() { this.setEmotion('neutral'); }
+    setHappy() { this.setEmotion('happy'); }
+    setSad() { this.setEmotion('sad'); }
+}
 
+// В функции checkPair оставляем setTimeout на 3 секунды:
+async function checkPair(selectedFruit) {
+    // ... (остальной код без изменений)
+    if (data.is_correct) {
+        fox.setHappy();
+    } else {
+        fox.setSad();
+    }
+    setTimeout(() => fox.setNeutral(), 3000); // 3 секунды!
+}
         // Инициализация лисы
         const fox = new Fox();
 

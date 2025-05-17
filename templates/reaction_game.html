@@ -1,55 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Reaction Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренажер реакции</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        .image-container {
+        body {
+            background: url("{{ url_for('static', filename='images/backgrounds/background1.png') }}") no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.6);
+            width: 80%;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.5);
             text-align: center;
-            margin: 30px;
         }
-        .image-container img {
-            width: 150px;
-            height: 150px;
-        }
-        .buttons {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .buttons button {
-            font-size: 20px;
-            margin: 0 15px;
-            padding: 10px 30px;
-            cursor: pointer;
-        }
+
         .top-bar {
             display: flex;
             justify-content: space-between;
-            padding: 10px 20px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .image-container img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            border: 3px solid #3498db;
+            border-radius: 15px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            margin: 20px 0;
+        }
+
+        .buttons {
+            margin: 30px 0;
+        }
+
+        .buttons button {
             font-size: 18px;
+            margin: 0 15px;
+            padding: 12px 40px;
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(221, 221, 221, 0.7);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .buttons button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            background-color: white;
+        }
+
+        .progress {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        #fox-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 500px;
+            height: 500px;
+            z-index: 100;
+        }
+
+        .fox-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: opacity 0.5s ease, transform 0.3s ease;
+        }
+
+        .feedback {
+            font-size: 1.5em;
+            font-weight: bold;
+            height: 40px;
+            margin: 15px 0;
+        }
+
+        .correct {
+            color: #2ecc71;
+            text-shadow: 0 0 3px rgba(46, 204, 113, 0.3);
+        }
+
+        .incorrect {
+            color: #e74c3c;
+            text-shadow: 0 0 3px rgba(231, 76, 60, 0.3);
         }
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <div><span id="timer"></span></div>
-        <div>{{ score }}/10 баллов</div>
+    <div class="container">
+        <div class="top-bar">
+            <div class="timer" id="timer"></div>
+            <div class="score">{{ score }}/10 баллов</div>
+        </div>
+
+        <div class="image-container">
+            <img src="{{ url_for('static', filename='images/' + task.image + '.png') }}" alt="{{ task.image }}">
+        </div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div class="buttons">
+            <button onclick="submitAnswer('fruit')">Фрукт</button>
+            <button onclick="submitAnswer('vegetable')">Овощ</button>
+        </div>
+
+        <div class="progress">
+            Вопрос {{ question_number }} из 10
+        </div>
     </div>
 
-    <div class="image-container">
-        <img src="{{ url_for('static', filename='images/' + task.image + '.png') }}" alt="{{ task.image }}">
-    </div>
-
-    <div class="buttons">
-        <button onclick="submitAnswer('fruit')">Фрукт</button>
-        <button onclick="submitAnswer('vegetable')">Овощ</button>
-    </div>
-
-    <div style="text-align: center; margin-top: 20px;">
-        Вопрос {{ question_number }} из 10
-    </div>
+    <!-- Контейнер для лисы -->
+    <div id="fox-container"></div>
 
     <script>
+        // Таймер
         const endTime = {{ end_time }};
         const timerElement = document.getElementById('timer');
 
@@ -65,8 +150,37 @@
             }
         }
 
-        setInterval(updateTimer, 1000);
-        updateTimer();
+        // Класс для лисы
+        class Fox {
+            constructor(containerId = 'fox-container') {
+                this.container = document.getElementById(containerId);
+                this.currentEmotion = null;
+                this.setNeutral();
+            }
+
+            setEmotion(emotion) {
+                if (this.currentEmotion === emotion) return;
+                
+                this.currentEmotion = emotion;
+                const img = new Image();
+                img.src = `{{ url_for('static', filename='images/fox/') }}${emotion}.png`;
+                img.className = 'fox-image';
+                img.style.opacity = 0;
+                
+                img.onload = () => {
+                    this.container.innerHTML = '';
+                    this.container.appendChild(img);
+                    setTimeout(() => { img.style.opacity = 1; }, 10);
+                };
+            }
+
+            setNeutral() { this.setEmotion('neutral'); }
+            setHappy() { this.setEmotion('happy'); }
+            setSad() { this.setEmotion('sad'); }
+        }
+
+        // Инициализация лисы
+        const fox = new Fox();
 
         function submitAnswer(choice) {
             fetch("/check_reaction", {
@@ -76,13 +190,36 @@
                 },
                 body: JSON.stringify({ selected: choice })
             }).then(res => res.json()).then(data => {
-                if (data.status === 'finished') {
-                    window.location.href = "/result?score=" + data.score;
+                const feedbackEl = document.getElementById('feedback');
+                
+                if (data.is_correct) {
+                    feedbackEl.textContent = "Верно! ✓";
+                    feedbackEl.className = "feedback correct";
+                    fox.setHappy();
                 } else {
-                    location.reload();
+                    feedbackEl.textContent = "Неверно ✗";
+                    feedbackEl.className = "feedback incorrect";
+                    fox.setSad();
+                }
+                
+                // Эмоция лисы на 3 секунды
+                setTimeout(() => fox.setNeutral(), 3000);
+                
+                if (data.status === 'finished') {
+                    setTimeout(() => {
+                        window.location.href = "/result?score=" + data.score;
+                    }, 1000);
+                } else {
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
                 }
             });
         }
+
+        // Запуск таймера
+        setInterval(updateTimer, 1000);
+        updateTimer();
     </script>
 </body>
 </html>

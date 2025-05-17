@@ -3,18 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <title>Математический тренажёр</title>
+    <style>
+        body {
+            background: url("{{ url_for('static', filename='images/backgrounds/background1.png') }}") no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 40px auto;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        #question {
+            font-size: 2.5em;
+            margin: 30px 0;
+            color: #333;
+        }
+
+        #answer-input {
+            font-size: 1.5em;
+            padding: 10px 15px;
+            width: 200px;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #submit-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #submit-btn:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+
+        #feedback {
+            font-size: 1.8em;
+            font-weight: bold;
+            height: 50px;
+            margin: 20px 0;
+        }
+
+        .correct {
+            color: #2ecc71;
+        }
+
+        .incorrect {
+            color: #e74c3c;
+        }
+
+        /* Стили для лисы */
+        #fox-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 500px;
+            height: 500px;
+            z-index: 100;
+        }
+        
+        .fox-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: opacity 0.5s ease, transform 0.3s ease;
+        }
+    </style>
 </head>
 <body>
-    <div>
-        Вопрос: <span id="question-num">{{ question_num }}</span>/15 |
-        Счёт: <span id="score">{{ score }}</span> |
-        ⏱ <span id="timer">5:00</span>
+    <div class="game-container">
+        <div class="game-header">
+            <div>Вопрос: <span id="question-num">{{ question_num }}</span>/15</div>
+            <div>Счёт: <span id="score">{{ score }}</span></div>
+            <div>⏱ <span id="timer">5:00</span></div>
+        </div>
+
+        <h1 id="question">{{ question }}</h1>
+        
+        <input type="number" id="answer-input" placeholder="Ответ">
+        
+        <div id="feedback"></div>
+        
+        <button id="submit-btn">Проверить</button>
     </div>
 
-    <h1 id="question">{{ question }}</h1>
-    <input type="number" id="answer-input" placeholder="Ответ">
-    <div id="feedback"></div>
-    <button id="submit-btn">Проверить</button>
+    <!-- Контейнер для лисы 500x500 -->
+    <div id="fox-container"></div>
 
     <script>
         const gameState = {
@@ -31,6 +134,38 @@
         const scoreEl = document.getElementById('score');
         const questionNumEl = document.getElementById('question-num');
         const timerEl = document.getElementById('timer');
+
+        // Класс для лисы с плавными переходами
+        class Fox {
+            constructor(containerId = 'fox-container') {
+                this.container = document.getElementById(containerId);
+                this.currentEmotion = null;
+                this.setNeutral();
+            }
+
+            setEmotion(emotion) {
+                if (this.currentEmotion === emotion) return;
+                
+                this.currentEmotion = emotion;
+                const img = new Image();
+                img.src = `{{ url_for('static', filename='images/fox/') }}${emotion}.png`;
+                img.className = 'fox-image';
+                img.style.opacity = 0;
+                
+                img.onload = () => {
+                    this.container.innerHTML = '';
+                    this.container.appendChild(img);
+                    setTimeout(() => { img.style.opacity = 1; }, 10);
+                };
+            }
+
+            setNeutral() { this.setEmotion('neutral'); }
+            setHappy() { this.setEmotion('happy'); }
+            setSad() { this.setEmotion('sad'); }
+        }
+
+        // Инициализация лисы
+        const fox = new Fox();
 
         function updateTimer() {
             const now = Math.floor(Date.now() / 1000);
@@ -58,13 +193,21 @@
             .then(r => r.json())
             .then(data => {
                 if (data.correct) {
-                    feedbackEl.textContent = "Верно!";
+                    feedbackEl.textContent = "Верно! ✓";
+                    feedbackEl.className = "feedback correct";
+                    fox.setHappy();
                     scoreEl.textContent = data.score;
                 } else {
-                    feedbackEl.textContent = "Неверно!";
+                    feedbackEl.textContent = "Неверно ✗";
+                    feedbackEl.className = "feedback incorrect";
+                    fox.setSad();
                 }
+                
+                // Возврат к нейтральной эмоции через 3 секунды
+                setTimeout(() => fox.setNeutral(), 3000);
+                
                 if (data.game_over) {
-                    endGame();
+                    setTimeout(endGame, 1000);
                 } else {
                     questionNumEl.textContent = data.question_num;
                     setTimeout(() => {

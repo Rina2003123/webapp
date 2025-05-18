@@ -6,37 +6,53 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      background: url("{{ url_for('static', filename='images/backgrounds/background2.png') }}") no-repeat center center fixed;
+      background-size: cover;
       margin: 0;
       padding: 0;
+      min-height: 100vh;
     }
+
+    .container {
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 15px;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    }
+
     .header {
       display: flex;
       justify-content: space-between;
       padding: 10px 20px;
-      background-color: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
+
     .timer, .score {
-      font-size: 18px;
+      font-size: 1.2em;
       font-weight: bold;
+      color: #333;
     }
+
     .game-board {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      grid-gap: 10px;
+      grid-gap: 15px;
       padding: 20px;
-      max-width: 800px;
-      margin: 20px auto;
+      margin: 0 auto;
     }
+
     .memory-card {
       width: 100%;
-      height: 100px;
+      height: 120px;
       position: relative;
       cursor: pointer;
       perspective: 1000px;
+
     }
+
     .memory-card .card-inner {
       position: absolute;
       width: 100%;
@@ -44,40 +60,118 @@
       transition: transform 0.6s;
       transform-style: preserve-3d;
     }
+
     .memory-card.flip .card-inner {
       transform: rotateY(180deg);
     }
+
     .card-front, .card-back {
       position: absolute;
       width: 100%;
       height: 100%;
       backface-visibility: hidden;
-      border-radius: 8px;
+      border-radius: 10px;
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center;
       background-color: white;
       border: 2px solid #ddd;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      transition: all 0.3s;
     }
+
     .card-front {
       transform: rotateY(180deg);
+      background-color: rgba(255, 255, 255, 0.9);
     }
+
     .card-back {
-      background-image: url('/static/card-back.png');
+      background-image: url("{{ url_for('static', filename='card-back.png') }}");
+      background-color: white;
+    }
+
+    .memory-card:hover .card-back {
+      transform: scale(0.98);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    /* Стили для лисы */
+    #fox-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 500px;
+      height: 500px;
+      z-index: 100;
+    }
+    
+    .fox-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transition: opacity 0.5s ease, transform 0.3s ease;
+    }
+
+    /* Анимация для совпадения */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .matched {
+      animation: pulse 0.5s ease;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="timer">⏳ <span id="timer">5:00</span></div>
-    <div class="score">Найдено пар: <span id="score">0</span>/12</div>
+  <div class="container">
+    <div class="header">
+      <div class="timer"> <span id="timer">5:00</span></div>
+      <div class="score">Найдено пар: <span id="score">0</span>/12</div>
+    </div>
+
+    <div class="game-board" id="game-board">
+      <!-- Карточки будут добавлены здесь JavaScript -->
+    </div>
   </div>
 
-  <div class="game-board" id="game-board">
-    <!-- Карточки будут добавлены здесь JavaScript -->
-  </div>
+  <!-- Контейнер для лисы 500x500 -->
+  <div id="fox-container"></div>
 
   <script>
+    // Класс для лисы с плавными переходами
+    class Fox {
+      constructor(containerId = 'fox-container') {
+        this.container = document.getElementById(containerId);
+        this.currentEmotion = null;
+        this.setNeutral();
+      }
+
+      setEmotion(emotion) {
+        if (this.currentEmotion === emotion) return;
+        
+        this.currentEmotion = emotion;
+        const img = new Image();
+        img.src = `{{ url_for('static', filename='images/fox/') }}${emotion}.png`;
+        img.className = 'fox-image';
+        img.style.opacity = 0;
+        
+        img.onload = () => {
+          this.container.innerHTML = '';
+          this.container.appendChild(img);
+          setTimeout(() => { img.style.opacity = 1; }, 10);
+        };
+      }
+
+      setNeutral() { this.setEmotion('neutral'); }
+      setHappy() { this.setEmotion('happy'); }
+      setSad() { this.setEmotion('sad'); }
+    }
+
+    // Инициализация лисы
+    const fox = new Fox();
+
     // Получаем данные карточек из серверного рендеринга
     const serverCards = {{ cards|tojson }};
     let cards = serverCards;
@@ -85,7 +179,7 @@
     let secondCard = null;
     let lockBoard = false;
     let matchedPairs = 0;
-    const totalPairs = 12;  // Теперь 12 пар
+    const totalPairs = 12;
 
     // Функция для перехода на страницу результатов
     function goToResults() {
@@ -108,7 +202,7 @@
 
         const cardFront = document.createElement('div');
         cardFront.classList.add('card-front');
-        cardFront.style.backgroundImage = `url('/static/images/${item}.png')`;
+        cardFront.style.backgroundImage = `url('{{ url_for('static', filename='images/') }}${item}.png')`;
 
         const cardBack = document.createElement('div');
         cardBack.classList.add('card-back');
@@ -144,19 +238,35 @@
     // Проверка совпадения
     function checkForMatch() {
       const isMatch = firstCard.dataset.item === secondCard.dataset.item;
-      isMatch ? disableCards() : unflipCards();
+      
+      if (isMatch) {
+        fox.setHappy();
+        disableCards();
+      } else {
+        fox.setSad();
+        unflipCards();
+      }
+
+      // Возврат к нейтральной эмоции через 3 секунды
+      setTimeout(() => fox.setNeutral(), 3000);
     }
 
     // Отключаем совпавшие карточки
     function disableCards() {
-      firstCard.removeEventListener('click', flipCard);
-      secondCard.removeEventListener('click', flipCard);
-      resetBoard();
-      matchedPairs++;
-      document.getElementById('score').textContent = matchedPairs;
-      if (matchedPairs === totalPairs) {
-        setTimeout(goToResults, 500);
-      }
+      firstCard.classList.add('matched');
+      secondCard.classList.add('matched');
+      
+      setTimeout(() => {
+        firstCard.removeEventListener('click', flipCard);
+        secondCard.removeEventListener('click', flipCard);
+        resetBoard();
+        matchedPairs++;
+        document.getElementById('score').textContent = matchedPairs;
+        
+        if (matchedPairs === totalPairs) {
+          setTimeout(goToResults, 500);
+        }
+      }, 500);
     }
 
     // Переворачиваем карточки обратно
@@ -181,7 +291,7 @@
       const minutes = Math.floor(timeLeft / 60);
       const seconds = timeLeft % 60;
       timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-      if (timeLeft === 0) {
+      if (timeLeft <= 0) {
         clearInterval(timerInterval);
         goToResults();
       }
